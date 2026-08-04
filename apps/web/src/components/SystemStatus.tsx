@@ -15,28 +15,62 @@ type ReadyPayload = {
 
 type LoadState =
   | { kind: "loading" }
+  | { kind: "cloud-only" }
   | { kind: "error"; message: string }
   | { kind: "ok"; health: HealthPayload; ready: ReadyPayload };
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+function resolveApiUrl(): string {
+  const configured = process.env.NEXT_PUBLIC_API_URL?.trim();
+  if (configured) return configured.replace(/\/$/, "");
+  return "http://localhost:8000";
+}
+
+function isBrowserOnCloudHost(): boolean {
+  if (typeof window === "undefined") return false;
+  const host = window.location.hostname;
+  return (
+    host.endsWith(".vercel.app") ||
+    host.endsWith(".netlify.app") ||
+    host.endsWith(".onrender.com") ||
+    (host !== "localhost" && host !== "127.0.0.1")
+  );
+}
+
+function isLocalApiUrl(url: string): boolean {
+  try {
+    const u = new URL(url);
+    return u.hostname === "localhost" || u.hostname === "127.0.0.1";
+  } catch {
+    return false;
+  }
+}
 
 export function SystemStatus() {
+  const apiUrl = resolveApiUrl();
   const [state, setState] = useState<LoadState>({ kind: "loading" });
 
   useEffect(() => {
     let cancelled = false;
 
+    // Vercel (or any public host) cannot reach the visitor's localhost API.
+    if (isBrowserOnCloudHost() && isLocalApiUrl(apiUrl)) {
+      setState({ kind: "cloud-only" });
+      return;
+    }
+
     async function load() {
       try {
         const [healthRes, readyRes] = await Promise.all([
-          fetch(`${API_URL}/health`, { cache: "no-store" }),
-          fetch(`${API_URL}/ready`, { cache: "no-store" }),
+          fetch(`${apiUrl}/health`, { cache: "no-store" }),
+          fetch(`${apiUrl}/ready`, { cache: "no-store" }),
         ]);
         if (!healthRes.ok) {
           throw new Error(`Health check failed (${healthRes.status})`);
         }
         const health = (await healthRes.json()) as HealthPayload;
-        const ready = (await readyRes.json()) as ReadyPayload;
+        const ready = readyRes.ok
+          ? ((await readyRes.json()) as ReadyPayload)
+          : { status: "unknown", checks: {} };
         if (!cancelled) {
           setState({ kind: "ok", health, ready });
         }
@@ -56,7 +90,7 @@ export function SystemStatus() {
       cancelled = true;
       window.clearInterval(id);
     };
-  }, []);
+  }, [apiUrl]);
 
   if (state.kind === "loading") {
     return (
@@ -68,16 +102,52 @@ export function SystemStatus() {
     );
   }
 
+  if (state.kind === "cloud-only") {
+    return (
+      <section
+        aria-label="System status"
+        className="max-w-xl rounded-lg border border-sky-200 bg-sky-50 px-5 py-4 text-sky-950"
+      >
+        <p className="text-sm font-semibold uppercase tracking-wide text-sky-800">
+          Frontend online
+        </p>
+        <p className="mt-2 text-sm leading-6">
+          This Vercel deploy serves the marketing site, docs, and console UI.
+          The API (queues, workers, gRPC) is not wired here yet — browsers cannot
+          call <code className="rounded bg-white/80 px-1">localhost:8000</code>.
+        </p>
+        <p className="mt-3 text-sm leading-6">
+          <strong>Full live demo:</strong> run Docker Compose locally, or deploy
+          the Render blueprint and set{" "}
+          <code className="rounded bg-white/80 px-1">NEXT_PUBLIC_API_URL</code>.
+        </p>
+        <a
+          href="https://github.com/DeepanshuJindal30/AgentMesh/blob/master/docs/cloud-deploy.md"
+          className="mt-3 inline-block text-sm font-semibold text-sky-800 underline-offset-2 hover:underline"
+          target="_blank"
+          rel="noreferrer"
+        >
+          Cloud deploy guide →
+        </a>
+      </section>
+    );
+  }
+
   if (state.kind === "error") {
     return (
       <div
         role="alert"
-        className="max-w-xl rounded-lg border border-red-200 bg-red-50 px-5 py-4 text-red-900"
+        className="max-w-xl rounded-lg border border-amber-200 bg-amber-50 px-5 py-4 text-amber-950"
       >
         <p className="font-medium">API unreachable</p>
         <p className="mt-1 text-sm opacity-90">{state.message}</p>
-        <p className="mt-2 text-sm text-red-800/80">
-          Expected API at <code>{API_URL}</code>
+        <p className="mt-2 text-sm">
+          Expected API at <code className="rounded bg-white/70 px-1">{apiUrl}</code>
+        </p>
+        <p className="mt-2 text-sm text-amber-900/80">
+          Start the stack with <code className="rounded bg-white/70 px-1">docker compose up -d</code>{" "}
+          or set <code className="rounded bg-white/70 px-1">NEXT_PUBLIC_API_URL</code> to your
+          public API.
         </p>
       </div>
     );
