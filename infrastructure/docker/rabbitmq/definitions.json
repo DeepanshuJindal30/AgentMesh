@@ -1,0 +1,59 @@
+{
+  "users": [
+    {
+      "name": "agentmesh",
+      "password": "agentmesh_dev_password",
+      "tags": ["administrator"]
+    }
+  ],
+  "vhosts": [{ "name": "/" }],
+  "permissions": [
+    {
+      "user": "agentmesh",
+      "vhost": "/",
+      "configure": ".*",
+      "write": ".*",
+      "read": ".*"
+    }
+  ],
+  "queues": [
+    {
+      "name": "agentmesh.executions",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-dead-letter-exchange": "agentmesh.dlx",
+        "x-dead-letter-routing-key": "executions.dead"
+      }
+    },
+    {
+      "name": "agentmesh.executions.dlq",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {}
+    }
+  ],
+  "exchanges": [
+    {
+      "name": "agentmesh.dlx",
+      "vhost": "/",
+      "type": "topic",
+      "durable": true,
+      "auto_delete": false,
+      "internal": false,
+      "arguments": {}
+    }
+  ],
+  "bindings": [
+    {
+      "source": "agentmesh.dlx",
+      "vhost": "/",
+      "destination": "agentmesh.executions.dlq",
+      "destination_type": "queue",
+      "routing_key": "executions.dead",
+      "arguments": {}
+    }
+  ]
+}

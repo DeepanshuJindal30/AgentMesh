@@ -1,0 +1,14 @@
+psycopg2-binary==2.9.10
+celery==5.4.0
+redis==5.2.1
+sqlalchemy==2.0.36
+grpcio==1.68.1
+protobuf==5.29.2
+httpx==0.28.1
+structlog==24.4.0
+prometheus-client==0.21.1
+opentelemetry-api==1.29.0
+opentelemetry-sdk==1.29.0
+pytest==8.3.4
+ruff==0.8.4
+mypy==1.14.0

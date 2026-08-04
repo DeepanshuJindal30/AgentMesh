@@ -1,0 +1,121 @@
+{
+  "realm": "agentmesh",
+  "enabled": true,
+  "displayName": "AgentMesh (local demo)",
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": false,
+  "editUsernameAllowed": false,
+  "sslRequired": "external",
+  "roles": {
+    "realm": [
+      { "name": "org_admin", "description": "Organization Admin" },
+      { "name": "developer", "description": "Developer" },
+      { "name": "operator", "description": "Operator" },
+      { "name": "viewer", "description": "Viewer" }
+    ]
+  },
+  "users": [
+    {
+      "username": "admin@agentmesh.local",
+      "email": "admin@agentmesh.local",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Ada",
+      "lastName": "Admin",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "AgentMesh!Dev1",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["org_admin"]
+    },
+    {
+      "username": "developer@agentmesh.local",
+      "email": "developer@agentmesh.local",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Dev",
+      "lastName": "Builder",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "AgentMesh!Dev1",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["developer"]
+    },
+    {
+      "username": "operator@agentmesh.local",
+      "email": "operator@agentmesh.local",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Ops",
+      "lastName": "Runner",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "AgentMesh!Dev1",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["operator"]
+    },
+    {
+      "username": "viewer@agentmesh.local",
+      "email": "viewer@agentmesh.local",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "View",
+      "lastName": "Only",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "AgentMesh!Dev1",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["viewer"]
+    }
+  ],
+  "clients": [
+    {
+      "clientId": "agentmesh-web",
+      "name": "AgentMesh Web",
+      "enabled": true,
+      "publicClient": true,
+      "directAccessGrantsEnabled": true,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "serviceAccountsEnabled": false,
+      "protocol": "openid-connect",
+      "redirectUris": [
+        "http://localhost:3000/*",
+        "http://127.0.0.1:3000/*"
+      ],
+      "webOrigins": [
+        "http://localhost:3000",
+        "http://127.0.0.1:3000"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256"
+      }
+    },
+    {
+      "clientId": "agentmesh-api",
+      "name": "AgentMesh API",
+      "enabled": true,
+      "publicClient": false,
+      "secret": "agentmesh-api-dev-secret",
+      "serviceAccountsEnabled": false,
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "protocol": "openid-connect",
+      "bearerOnly": true
+    }
+  ]
+}

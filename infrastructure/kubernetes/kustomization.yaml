@@ -1,0 +1,29 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: agentmesh
+resources:
+  - namespace.yaml
+  - configmap.yaml
+  - secrets.yaml
+  - postgres.yaml
+  - redis.yaml
+  - rabbitmq.yaml
+  - api.yaml
+  - worker.yaml
+  - runtime.yaml
+  - web.yaml
+  - ingress.yaml
+  - hpa.yaml
+labels:
+  - pairs:
+      app.kubernetes.io/part-of: agentmesh
+    includeSelectors: false
+images:
+  - name: agentmesh/api
+    newTag: local
+  - name: agentmesh/worker
+    newTag: local
+  - name: agentmesh/runtime
+    newTag: local
+  - name: agentmesh/web
+    newTag: local

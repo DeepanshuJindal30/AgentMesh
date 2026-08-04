@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: agentmesh-config
+  namespace: agentmesh
+  labels:
+    app.kubernetes.io/part-of: agentmesh
+data:
+  SERVICE_NAME_API: "api"
+  SERVICE_NAME_WORKER: "worker"
+  SERVICE_NAME_RUNTIME: "runtime"
+  AUTH_DEV_BYPASS: "true"
+  KEYCLOAK_REALM: "agentmesh"
+  KEYCLOAK_CLIENT_ID: "agentmesh-web"
+  LLM_PROVIDER: "mock"
+  API_CORS_ORIGINS: "http://localhost:3000,http://agentmesh.local"
+  NEXT_PUBLIC_API_URL: "http://localhost:8000"
+  RUNTIME_GRPC_HOST: "runtime"
+  RUNTIME_GRPC_PORT: "50051"
+  REDIS_URL: "redis://redis:6379/0"
+  CELERY_RESULT_BACKEND: "redis://redis:6379/1"

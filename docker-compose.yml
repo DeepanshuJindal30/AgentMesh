@@ -1,0 +1,216 @@
+name: agentmesh
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: agentmesh-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-agentmesh}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-agentmesh_dev_password}
+      POSTGRES_DB: ${POSTGRES_DB:-agentmesh}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infrastructure/docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-agentmesh} -d ${POSTGRES_DB:-agentmesh}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    container_name: agentmesh-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: agentmesh-rabbitmq
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-agentmesh}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-agentmesh_dev_password}
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+      - ./infrastructure/docker/rabbitmq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
+      - ./infrastructure/docker/rabbitmq/definitions.json:/etc/rabbitmq/definitions.json:ro
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 10s
+      retries: 30
+      start_period: 60s
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.0
+    container_name: agentmesh-keycloak
+    restart: unless-stopped
+    command: ["start-dev", "--import-realm"]
+    environment:
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN:-admin}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin_dev_password}
+      KC_HTTP_PORT: 8080
+      KC_HEALTH_ENABLED: "true"
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./infrastructure/docker/keycloak/realm-export.json:/opt/keycloak/data/import/realm-export.json:ro
+    healthcheck:
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/8080"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 40s
+
+  api:
+    build:
+      context: ./services/api
+      dockerfile: Dockerfile
+    container_name: agentmesh-api
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      SERVICE_NAME: api
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-agentmesh}:${POSTGRES_PASSWORD:-agentmesh_dev_password}@postgres:5432/${POSTGRES_DB:-agentmesh}
+      REDIS_URL: redis://redis:6379/0
+      RABBITMQ_URL: amqp://${RABBITMQ_USER:-agentmesh}:${RABBITMQ_PASSWORD:-agentmesh_dev_password}@rabbitmq:5672//
+      CELERY_BROKER_URL: amqp://${RABBITMQ_USER:-agentmesh}:${RABBITMQ_PASSWORD:-agentmesh_dev_password}@rabbitmq:5672//
+      API_CORS_ORIGINS: ${API_CORS_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000}
+      AUTH_DEV_BYPASS: ${AUTH_DEV_BYPASS:-true}
+      KEYCLOAK_URL: http://keycloak:8080
+      KEYCLOAK_REALM: agentmesh
+      KEYCLOAK_CLIENT_ID: agentmesh-web
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  worker:
+    build:
+      context: ./services/worker
+      dockerfile: Dockerfile
+    container_name: agentmesh-worker
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      SERVICE_NAME: worker
+      CELERY_BROKER_URL: amqp://${RABBITMQ_USER:-agentmesh}:${RABBITMQ_PASSWORD:-agentmesh_dev_password}@rabbitmq:5672//
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+      REDIS_URL: redis://redis:6379/0
+      DATABASE_URL_SYNC: postgresql+psycopg2://${POSTGRES_USER:-agentmesh}:${POSTGRES_PASSWORD:-agentmesh_dev_password}@postgres:5432/${POSTGRES_DB:-agentmesh}
+      RUNTIME_GRPC_HOST: runtime
+      RUNTIME_GRPC_PORT: 50051
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      runtime:
+        condition: service_started
+
+  runtime:
+    build:
+      context: ./services/runtime
+      dockerfile: Dockerfile
+    container_name: agentmesh-runtime
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      SERVICE_NAME: runtime
+      RUNTIME_GRPC_PORT: 50051
+      LLM_PROVIDER: ${LLM_PROVIDER:-mock}
+    ports:
+      - "50051:50051"
+
+  web:
+    build:
+      context: ./apps/web
+      dockerfile: Dockerfile
+    container_name: agentmesh-web
+    restart: unless-stopped
+    environment:
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+    ports:
+      - "3000:3000"
+    depends_on:
+      api:
+        condition: service_healthy
+
+  # Observability stack (optional profile: monitoring)
+  prometheus:
+    profiles: ["monitoring"]
+    image: prom/prometheus:v2.55.1
+    container_name: agentmesh-prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./infrastructure/monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+
+  grafana:
+    profiles: ["monitoring"]
+    image: grafana/grafana:11.3.1
+    container_name: agentmesh-grafana
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: agentmesh_grafana_dev
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    ports:
+      - "3001:3000"
+    volumes:
+      - ./infrastructure/monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+
+  jaeger:
+    profiles: ["monitoring"]
+    image: jaegertracing/all-in-one:1.57
+    container_name: agentmesh-jaeger
+    restart: unless-stopped
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+    ports:
+      - "16686:16686"
+      - "4317:4317"
+      - "4318:4318"
+
+volumes:
+  postgres_data:
+  redis_data:
+  rabbitmq_data:
+  prometheus_data:
+  grafana_data:

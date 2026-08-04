@@ -1,0 +1,48 @@
+syntax = "proto3";
+
+package agentmesh.runtime.v1;
+
+option py_generic_services = false;
+
+// AgentRuntimeService executes agent steps and streams progress events.
+// Used exclusively for internal worker → runtime communication.
+service AgentRuntimeService {
+  rpc RunExecution(RunExecutionRequest) returns (stream ExecutionStepEvent);
+  rpc HealthCheck(HealthCheckRequest) returns (HealthCheckResponse);
+}
+
+message RunExecutionRequest {
+  string execution_id = 1;
+  string organization_id = 2;
+  string agent_version_id = 3;
+  string agent_configuration = 4; // JSON string
+  string user_input = 5;          // JSON string
+  int32 timeout_seconds = 6;
+  string correlation_id = 7;
+}
+
+message TokenUsage {
+  int32 prompt_tokens = 1;
+  int32 completion_tokens = 2;
+  int32 total_tokens = 3;
+}
+
+message ExecutionStepEvent {
+  int32 sequence_number = 1;
+  string event_type = 2;
+  string message = 3;
+  string payload_json = 4;
+  TokenUsage token_usage = 5;
+  string timestamp = 6; // RFC3339
+  bool is_terminal = 7;
+  string error_code = 8;
+}
+
+message HealthCheckRequest {
+  string service = 1;
+}
+
+message HealthCheckResponse {
+  string status = 1;
+  string version = 2;
+}
