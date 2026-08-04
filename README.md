@@ -2,26 +2,53 @@
 
 **Multi-Tenant AI Agent Execution Platform**
 
-A production-quality portfolio project demonstrating full-stack and distributed-systems engineering for enterprise AI-agent platforms: OIDC authentication, RBAC, durable async agent executions, gRPC streaming runtime, live SSE monitoring, pgvector similarity search, and Kubernetes deployment.
+A production-quality portfolio project demonstrating full-stack and distributed-systems engineering for enterprise AI-agent platforms: OIDC authentication, RBAC, durable async agent executions, gRPC streaming runtime, live SSE monitoring, pgvector similarity search, Kubernetes deployment, and an in-app docs site.
 
 > **Status:** Phases 0–10 complete for local Compose + K8s/CI portfolio demo. See [docs/implementation-plan.md](docs/implementation-plan.md).
+
+## Quick demo (2 minutes)
+
+```bash
+cd agentmesh
+cp .env.example .env
+docker compose up --build -d
+```
+
+1. Open **http://localhost:3000** — marketing + product overview
+2. Open **http://localhost:3000/docs** — full documentation
+3. Sign in at **http://localhost:3000/login**
+   - Email: `admin@agentmesh.local`
+   - Password: `AgentMesh!Dev1`
+4. On the Dashboard, click **▶ Run live demo**
+5. Watch the Ticket Similarity execution stream live over SSE
+
+| Service | URL |
+|---------|-----|
+| Web | http://localhost:3000 |
+| API docs | http://localhost:8000/docs |
+| Grafana (optional) | http://localhost:3001 (`admin` / `agentmesh_grafana_dev`) |
+
+```bash
+docker compose --profile monitoring up -d   # Prometheus + Grafana + Jaeger
+```
 
 ## Why this project exists
 
 Chatbots and CRUD apps do not demonstrate the skills required for agent platforms: multi-tenant isolation, durable queues, crash recovery, idempotency, live observability, and secure identity. AgentMesh is built to show those capabilities end-to-end, with a practical **Ticket Similarity Agent** as the sample AI use case.
 
-## Features (target)
+## Features
 
-- OAuth2 / OpenID Connect login via Keycloak (Authorization Code + PKCE)
+- OAuth2 / OpenID Connect login via Keycloak (local bypass for offline demos)
 - Multi-tenant organizations with RBAC (Admin, Developer, Operator, Viewer)
 - Immutable agent versioning and publish workflow
 - Async executions via RabbitMQ + Celery (retries, DLQ, idempotency)
 - gRPC AgentRuntimeService with server-streaming step events
 - Live execution UI via Server-Sent Events + Redis Pub/Sub
-- Ticket Similarity Agent with pgvector embeddings
-- Rate limiting, quotas, API keys, append-only audit logs
+- Ticket Similarity Agent with mock embeddings (optional real LLM later)
+- Rate limiting, quotas, hashed API keys, append-only audit logs
+- Marketing site + in-app documentation
 - Docker Compose local stack; Kubernetes manifests; Prometheus / Grafana / Jaeger
-- CI with lint, type-check, unit/integration tests, security scanning
+- CI with lint, type-check, unit tests, Docker builds, Kustomize validation
 
 ## Architecture
 
@@ -49,24 +76,24 @@ Full diagrams: [docs/architecture.md](docs/architecture.md).
 | Data | PostgreSQL, pgvector, Redis |
 | Async | RabbitMQ, Celery |
 | Internal RPC | gRPC, Protocol Buffers |
-| Auth | Keycloak, OAuth2/OIDC, PKCE, JWT |
+| Auth | Keycloak, OAuth2/OIDC, JWT |
 | Infra | Docker, Compose, Kubernetes, NGINX Ingress, HPA |
-| Observability | Structured JSON logs, OpenTelemetry, Prometheus, Grafana, Jaeger |
-| CI/CD | GitHub Actions, Ruff, MyPy, ESLint, Vitest, Pytest, Playwright |
+| Observability | Structured logs, Prometheus, Grafana, Jaeger |
+| CI/CD | GitHub Actions, Ruff, ESLint, Vitest, Pytest, Playwright |
 
 ## Repository layout
 
 ```
 agentmesh/
-├── apps/web/                 # Next.js frontend + BFF
+├── apps/web/                 # Next.js console + marketing + docs
 ├── services/api/             # FastAPI REST API
 ├── services/worker/          # Celery workers
 ├── services/runtime/         # gRPC agent runtime
 ├── packages/proto/           # Protocol Buffers
 ├── infrastructure/           # Docker, K8s, monitoring
 ├── scripts/                  # Dev and seed scripts
-├── tests/                    # Integration + E2E
-├── docs/                     # Architecture, ADRs, security
+├── tests/                    # E2E + load templates
+├── docs/                     # Architecture, ADRs, security, screenshots
 ├── docker-compose.yml
 ├── Makefile
 ├── .env.example
@@ -78,30 +105,8 @@ agentmesh/
 ### Prerequisites
 
 - Docker Desktop with Compose v2
-- Make (optional; or use Compose commands directly)
+- Make (optional)
 - Node 20+ and Python 3.12+ (for local non-Docker development)
-
-### Quick start (Docker Compose)
-
-```bash
-cd agentmesh
-cp .env.example .env
-docker compose up --build -d
-```
-
-### Expected URLs
-
-| Service | URL |
-|---------|-----|
-| Web | http://localhost:3000 |
-| API health | http://localhost:8000/health |
-| API ready | http://localhost:8000/ready |
-| API docs | http://localhost:8000/docs |
-| Keycloak | http://localhost:8080 |
-| RabbitMQ management | http://localhost:15672 |
-| Grafana | http://localhost:3001 |
-| Prometheus | http://localhost:9090 |
-| Jaeger UI | http://localhost:16686 |
 
 ### Demo users (local development only)
 
@@ -112,66 +117,51 @@ docker compose up --build -d
 | `operator@agentmesh.local` | Operator | `AgentMesh!Dev1` |
 | `viewer@agentmesh.local` | Viewer | `AgentMesh!Dev1` |
 
-These credentials are **development-only**, loaded via Keycloak realm import. Never use them outside local demos.
+These credentials are **development-only**. Never use them outside local demos.
 
 ## Environment variables
 
 See [.env.example](.env.example). Copy to `.env` before starting Compose. Do not commit `.env`.
 
-## Database migrations
-
-```bash
-docker compose exec api alembic upgrade head
-```
-
-(Available after Alembic is introduced in Phase 2/3.)
-
 ## Testing
 
 ```bash
 # Backend
-docker compose exec api pytest
+cd services/api && pytest -q
 
 # Frontend
-docker compose exec web npm test
+cd apps/web && npm test
 
-# Integration / E2E (later phases)
-make test-integration
-make test-e2e
+# Playwright smoke (stack must be up)
+cd tests/e2e && npm install && npx playwright test
 ```
 
-## Kubernetes deployment
-
-See [docs/deployment.md](docs/deployment.md) (Phase 9).
+## Kubernetes
 
 ```bash
-# Kind / Minikube examples will be documented there
 kubectl apply -k infrastructure/kubernetes/
 ```
 
-## API documentation
-
-- OpenAPI UI: http://localhost:8000/docs
-- Design notes: [docs/api-design.md](docs/api-design.md) (Phase 2+)
+See [docs/deployment.md](docs/deployment.md).
 
 ## Security design
 
-See [docs/security.md](docs/security.md) and [docs/threat-model.md](docs/threat-model.md).
+See [docs/security.md](docs/security.md).
 
 Highlights:
 
-- OIDC + PKCE; tokens not stored in `localStorage`
-- Tenant isolation in service layer
+- Tenant isolation in the service layer
 - RBAC via FastAPI dependencies
 - API keys stored as hashes only
+- Production hardening path: BFF + HttpOnly cookies (demo currently uses bearer session storage)
 
 ## Distributed-system guarantees
 
 | Guarantee | Approach |
 |-----------|----------|
-| At-least-once task delivery | RabbitMQ + manual ack after durable side effects |
+| At-least-once task delivery | RabbitMQ + ack after durable side effects |
 | No duplicate business execution | Idempotency keys + atomic status transitions |
-| Crash recovery | Unacked messages redelivered; workers resume safely |
+| Crash recovery | Unacked messages redelivered; workers claim safely |
 | Live event durability | Events in Postgres; Redis Pub/Sub for fan-out |
 | Tenant isolation | `organization_id` from membership, never client trust |
 
@@ -185,14 +175,6 @@ Honest trade-off: at-least-once means handlers **must** be idempotent. Exactly-o
 - Local K8s Postgres/Redis/RabbitMQ are for development only (plaintext Secret templates).
 - Load-test numbers are not fabricated; see [docs/load-testing.md](docs/load-testing.md).
 
-## Future improvements
-
-- Postgres Row-Level Security
-- Multi-region failover
-- Cost attribution per model provider
-- Native horizontal autoscaling from queue depth exporters
-- Soft-delete and retention policies for audit/events
-
 ## Screenshots
 
 | | |
@@ -202,13 +184,6 @@ Honest trade-off: at-least-once means handlers **must** be idempotent. Exactly-o
 | Live execution (SSE) | ![Execution](docs/screenshots/03-execution-live.png) |
 | Usage / quotas | ![Usage](docs/screenshots/04-usage.png) |
 | Grafana | ![Grafana](docs/screenshots/05-grafana.png) |
-
-Also captured: `04b-api-keys.png`, `04c-audit-logs.png`. Re-run with:
-
-```bash
-cd tests/e2e && npm install && npx playwright install chromium
-CAPTURE_GRAFANA=1 PLAYWRIGHT_BASE_URL=http://localhost:3000 npx playwright test specs/capture-screenshots.spec.ts
-```
 
 ## Interview talking points
 
@@ -220,7 +195,7 @@ Full answers: [docs/interview-talking-points.md](docs/interview-talking-points.m
 4. SSE vs WebSockets for execution event streams
 5. Shared-schema multi-tenancy isolation strategy
 6. Immutable agent versions and execution reproducibility
-7. BFF / HttpOnly session pattern vs storing JWTs in localStorage
+7. BFF / HttpOnly session pattern vs storing JWTs in the browser
 
 ## Documentation index
 
@@ -231,8 +206,7 @@ Full answers: [docs/interview-talking-points.md](docs/interview-talking-points.m
 | [deployment.md](docs/deployment.md) | Compose + Kubernetes + CI |
 | [demo-script.md](docs/demo-script.md) | 2–3 minute demo |
 | [interview-talking-points.md](docs/interview-talking-points.md) | Interview answers |
-| [load-testing.md](docs/load-testing.md) | k6 template |
-| [adr/](docs/adr/) | Architecture Decision Records |
+| In-app docs | http://localhost:3000/docs |
 
 ## License
 

@@ -59,6 +59,9 @@ export function AppShell({
             <Link href="/audit-logs" className="hover:text-accent-600">
               Audit
             </Link>
+            <Link href="/docs" className="hover:text-accent-600">
+              Docs
+            </Link>
             <button
               type="button"
               className="rounded border border-slate-300 px-3 py-1.5"

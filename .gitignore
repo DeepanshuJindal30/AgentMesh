@@ -30,9 +30,15 @@ yarn-error.log*
 # IDE / OS
 .idea/
 .vscode/
+.claude/
 *.swp
 .DS_Store
 Thumbs.db
+
+# Playwright
+tests/e2e/test-results/
+tests/e2e/playwright-report/
+tests/e2e/blob-report/
 
 # Generated protobuf (Phase 5 may commit selected stubs)
 **/generated/
@@ -48,3 +54,6 @@ tmp/
 *.key
 secrets/
 credentials.json
+
+# RepoWise local index
+.repowise/

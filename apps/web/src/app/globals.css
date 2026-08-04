@@ -1,33 +1,165 @@
-@import url("https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,400&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Syne:wght@600;700;800&display=swap");
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --font-display: "Fraunces", Georgia, serif;
-  --font-sans: "DM Sans", ui-sans-serif, system-ui, sans-serif;
-  --surface: #f3f6f8;
+  --font-display: "Syne", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Manrope", ui-sans-serif, system-ui, sans-serif;
+  --surface: #f0f4f7;
   --surface-elevated: #ffffff;
-  --ink: #0b1220;
-  --muted: #5b6b7c;
-  --accent: #0d9488;
-  --grid: rgba(15, 23, 42, 0.06);
+  --ink: #0a1628;
+  --muted: #5a6b7d;
+  --accent: #0f766e;
+  --accent-bright: #14b8a6;
+  --grid: rgba(15, 23, 42, 0.055);
 }
 
 body {
   color: var(--ink);
   background:
-    radial-gradient(1200px 600px at 10% -10%, rgba(13, 148, 136, 0.12), transparent 55%),
-    radial-gradient(900px 500px at 90% 0%, rgba(14, 165, 233, 0.10), transparent 50%),
-    linear-gradient(180deg, #eef3f6 0%, var(--surface) 40%, #e8eef2 100%);
+    radial-gradient(1100px 520px at 8% -8%, rgba(15, 118, 110, 0.14), transparent 55%),
+    radial-gradient(900px 480px at 92% 4%, rgba(2, 132, 199, 0.1), transparent 48%),
+    linear-gradient(180deg, #e8eef3 0%, var(--surface) 42%, #e4eaef 100%);
   min-height: 100vh;
   font-family: var(--font-sans);
+}
+
+.font-display {
+  font-family: var(--font-display);
 }
 
 .mesh-grid {
   background-image:
     linear-gradient(var(--grid) 1px, transparent 1px),
     linear-gradient(90deg, var(--grid) 1px, transparent 1px);
-  background-size: 48px 48px;
+  background-size: 56px 56px;
+}
+
+@keyframes am-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes am-pulse-line {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes am-flow {
+  0% {
+    offset-distance: 0%;
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    offset-distance: 100%;
+    opacity: 0;
+  }
+}
+
+@keyframes am-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.am-fade-up {
+  animation: am-fade-up 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.am-fade-up-delay-1 {
+  animation-delay: 0.12s;
+}
+
+.am-fade-up-delay-2 {
+  animation-delay: 0.24s;
+}
+
+.am-fade-up-delay-3 {
+  animation-delay: 0.36s;
+}
+
+.am-flow-dot {
+  offset-path: path("M 40 80 C 180 80, 220 80, 360 80 S 540 80, 680 80");
+  animation: am-flow 3.2s linear infinite;
+}
+
+.am-code-shimmer {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(20, 184, 166, 0.12) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: am-shimmer 4s linear infinite;
+}
+
+.docs-prose h2 {
+  @apply font-display mt-10 scroll-mt-28 text-2xl font-bold text-ink-950;
+}
+
+.docs-prose h3 {
+  @apply mt-8 scroll-mt-28 text-lg font-semibold text-ink-950;
+}
+
+.docs-prose p {
+  @apply mt-3 text-[15px] leading-7 text-ink-700;
+}
+
+.docs-prose ul {
+  @apply mt-3 list-disc space-y-2 pl-5 text-[15px] leading-7 text-ink-700;
+}
+
+.docs-prose ol {
+  @apply mt-3 list-decimal space-y-2 pl-5 text-[15px] leading-7 text-ink-700;
+}
+
+.docs-prose code {
+  @apply rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[13px] text-teal-900;
+}
+
+.docs-prose pre {
+  @apply mt-4 overflow-x-auto rounded-lg border border-slate-200 bg-[#0b1628] p-4 text-[13px] leading-6 text-slate-100;
+}
+
+.docs-prose pre code {
+  @apply bg-transparent p-0 text-slate-100;
+}
+
+.docs-prose a {
+  @apply font-medium text-accent-600 underline-offset-2 hover:underline;
+}
+
+.docs-prose table {
+  @apply mt-4 w-full border-collapse text-left text-sm;
+}
+
+.docs-prose th {
+  @apply border-b border-slate-200 pb-2 font-semibold text-ink-950;
+}
+
+.docs-prose td {
+  @apply border-b border-slate-100 py-2.5 text-ink-700;
 }

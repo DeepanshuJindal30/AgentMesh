@@ -12,7 +12,7 @@ module.exports = {
         },
         accent: {
           500: "#0ea5a4",
-          600: "#0d9488",
+          600: "#0f766e",
         },
       },
       fontFamily: {

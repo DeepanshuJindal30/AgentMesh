@@ -1,0 +1,37 @@
+---
+description: Use RepoWise MCP for codebase intelligence before broad greps
+globs:
+alwaysApply: true
+---
+
+# RepoWise
+
+This workspace is indexed by [RepoWise](https://github.com/repowise-dev/repowise). Prefer its MCP tools over rediscovering the repo with grep/read loops.
+
+## When to use which tool
+
+| Need | Tool |
+|------|------|
+| First orientation / architecture | `get_overview` |
+| File/module/symbol triage (batch OK) | `get_context` |
+| Exact symbol source bounds | `get_symbol` |
+| Natural-language question with citations | `get_answer` |
+| Wiki / semantic search | `search_codebase` |
+| Blast radius / hotspots / PR risk | `get_risk`, `get_change_risk` |
+| Why this design | `get_why` |
+| Dead code | `get_dead_code` |
+| Health + refactoring plans | `get_health` |
+
+## Rules of thumb
+
+1. Call `get_overview` once when the task is unfamiliar.
+2. Pass multiple paths/symbols to `get_context` in one call instead of sequential greps.
+3. If `_meta.stale_warning` appears, tell the user to run `repowise update` in the repo root.
+4. Index is local under `.repowise/` — no cloud required for graph/health/risk tools.
+
+## Keep the index fresh
+
+```bash
+repowise update
+# or: repowise watch
+```

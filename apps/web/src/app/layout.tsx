@@ -3,8 +3,12 @@ import { StoreProvider } from "@/lib/store";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "AgentMesh",
-  description: "Multi-tenant AI agent execution platform",
+  title: {
+    default: "AgentMesh",
+    template: "%s · AgentMesh",
+  },
+  description:
+    "Multi-tenant AI agent execution platform — durable queues, gRPC runtime, live SSE, RBAC, and ops controls.",
 };
 
 export default function RootLayout({
