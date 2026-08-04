@@ -34,17 +34,23 @@ EXECUTIONS_QUEUE = "agentmesh.executions"
 WORKER_ID = f"{SERVICE_NAME}@{socket.gethostname()}"
 
 celery_app = Celery("agentmesh", broker=BROKER_URL, backend=RESULT_BACKEND)
-celery_app.conf.task_queues = (
-    Queue(
-        EXECUTIONS_QUEUE,
-        Exchange(""),
-        routing_key=EXECUTIONS_QUEUE,
-        queue_arguments={
-            "x-dead-letter-exchange": "agentmesh.dlx",
-            "x-dead-letter-routing-key": "executions.dead",
-        },
-    ),
-)
+
+
+def _executions_queue() -> Queue:
+    if BROKER_URL.startswith("amqp"):
+        return Queue(
+            EXECUTIONS_QUEUE,
+            Exchange(""),
+            routing_key=EXECUTIONS_QUEUE,
+            queue_arguments={
+                "x-dead-letter-exchange": "agentmesh.dlx",
+                "x-dead-letter-routing-key": "executions.dead",
+            },
+        )
+    return Queue(EXECUTIONS_QUEUE, Exchange(""), routing_key=EXECUTIONS_QUEUE)
+
+
+celery_app.conf.task_queues = (_executions_queue(),)
 celery_app.conf.update(
     task_acks_late=True,
     task_reject_on_worker_lost=True,

@@ -10,13 +10,19 @@ from typing import Any, Optional
 from sqlalchemy import create_engine, select, text, update
 from sqlalchemy.orm import Session, sessionmaker
 
-DATABASE_URL = os.getenv(
-    "DATABASE_URL_SYNC",
+DATABASE_URL = (
     os.getenv(
-        "DATABASE_URL",
-        "postgresql+psycopg2://agentmesh:agentmesh_dev_password@localhost:5432/agentmesh",
-    ),
-).replace("postgresql+asyncpg://", "postgresql+psycopg2://")
+        "DATABASE_URL_SYNC",
+        os.getenv(
+            "DATABASE_URL",
+            "postgresql+psycopg2://agentmesh:agentmesh_dev_password@localhost:5432/agentmesh",
+        ),
+    )
+    .replace("postgresql+asyncpg://", "postgresql+psycopg2://")
+    .replace("postgres://", "postgresql+psycopg2://")
+)
+if DATABASE_URL.startswith("postgresql://"):
+    DATABASE_URL = "postgresql+psycopg2://" + DATABASE_URL[len("postgresql://") :]
 
 engine = create_engine(DATABASE_URL, pool_pre_ping=True)
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)

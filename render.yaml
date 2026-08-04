@@ -1,0 +1,106 @@
+# AgentMesh — Render free-tier blueprint
+# https://dashboard.render.com/select-repo?type=blueprint
+#
+# Notes:
+# - Free web services spin down after idle (~15s cold start).
+# - Uses Redis as Celery broker (no RabbitMQ on free Render).
+# - Keycloak omitted; AUTH_DEV_BYPASS=true for the public demo.
+# - After deploy, set NEXT_PUBLIC_API_URL on Vercel to the API URL,
+#   and set API_CORS_ORIGINS on the API to your Vercel domain.
+
+databases:
+  - name: agentmesh-db
+    plan: free
+    databaseName: agentmesh
+    user: agentmesh
+
+  - name: agentmesh-redis
+    plan: free
+    ipAllowList: []
+
+services:
+  - type: web
+    name: agentmesh-api
+    runtime: docker
+    plan: free
+    rootDir: .
+    dockerfilePath: services/api/Dockerfile
+    dockerContext: services/api
+    healthCheckPath: /health
+    envVars:
+      - key: SERVICE_NAME
+        value: api
+      - key: AUTH_DEV_BYPASS
+        value: "true"
+      - key: JWT_SECRET
+        generateValue: true
+      - key: LLM_PROVIDER
+        value: mock
+      - key: DATABASE_URL
+        fromDatabase:
+          name: agentmesh-db
+          property: connectionString
+      - key: REDIS_URL
+        fromDatabase:
+          name: agentmesh-redis
+          property: connectionString
+      - key: CELERY_BROKER_URL
+        fromDatabase:
+          name: agentmesh-redis
+          property: connectionString
+      - key: CELERY_RESULT_BACKEND
+        fromDatabase:
+          name: agentmesh-redis
+          property: connectionString
+      - key: API_CORS_ORIGINS
+        sync: false
+      - key: PYTHONUNBUFFERED
+        value: "1"
+
+  - type: worker
+    name: agentmesh-worker
+    runtime: docker
+    plan: free
+    rootDir: .
+    dockerfilePath: services/worker/Dockerfile
+    dockerContext: services/worker
+    envVars:
+      - key: SERVICE_NAME
+        value: worker
+      - key: LLM_PROVIDER
+        value: mock
+      - key: DATABASE_URL_SYNC
+        fromDatabase:
+          name: agentmesh-db
+          property: connectionString
+      - key: REDIS_URL
+        fromDatabase:
+          name: agentmesh-redis
+          property: connectionString
+      - key: CELERY_BROKER_URL
+        fromDatabase:
+          name: agentmesh-redis
+          property: connectionString
+      - key: CELERY_RESULT_BACKEND
+        fromDatabase:
+          name: agentmesh-redis
+          property: connectionString
+      - key: RUNTIME_GRPC_HOST
+        value: agentmesh-runtime
+      - key: RUNTIME_GRPC_PORT
+        value: "50051"
+
+  - type: pserv
+    name: agentmesh-runtime
+    runtime: docker
+    plan: free
+    rootDir: .
+    dockerfilePath: services/runtime/Dockerfile
+    dockerContext: services/runtime
+    envVars:
+      - key: SERVICE_NAME
+        value: runtime
+      - key: LLM_PROVIDER
+        value: mock
+      - key: RUNTIME_GRPC_PORT
+        value: "50051"

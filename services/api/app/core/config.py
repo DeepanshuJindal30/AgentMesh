@@ -4,7 +4,17 @@ from __future__ import annotations
 
 from functools import lru_cache
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+def normalize_async_database_url(url: str) -> str:
+    """Accept Render/Heroku-style postgres:// URLs for SQLAlchemy async."""
+    if url.startswith("postgres://"):
+        return "postgresql+asyncpg://" + url[len("postgres://") :]
+    if url.startswith("postgresql://") and "+asyncpg" not in url:
+        return "postgresql+asyncpg://" + url[len("postgresql://") :]
+    return url
 
 
 class Settings(BaseSettings):
@@ -33,6 +43,13 @@ class Settings(BaseSettings):
 
     runtime_grpc_host: str = "localhost"
     runtime_grpc_port: int = 50051
+
+    @field_validator("database_url", mode="before")
+    @classmethod
+    def _normalize_db(cls, value: object) -> object:
+        if isinstance(value, str):
+            return normalize_async_database_url(value)
+        return value
 
     @property
     def keycloak_issuer(self) -> str:

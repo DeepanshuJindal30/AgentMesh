@@ -144,6 +144,17 @@ kubectl apply -k infrastructure/kubernetes/
 
 See [docs/deployment.md](docs/deployment.md).
 
+## Cloud deploy (free)
+
+Vercel hosts the **frontend**; Render hosts the **API / worker / runtime** (free tier).
+
+Full guide: **[docs/cloud-deploy.md](docs/cloud-deploy.md)**
+
+1. [Import on Vercel](https://vercel.com/new) → Root Directory `apps/web`
+2. [Render Blueprint](https://dashboard.render.com/blueprints/new) → uses `render.yaml`
+3. Set Vercel env `NEXT_PUBLIC_API_URL` to the Render API URL
+4. Set Render API env `API_CORS_ORIGINS` to your Vercel domain
+
 ## Security design
 
 See [docs/security.md](docs/security.md).

@@ -46,7 +46,10 @@ async def _check_postgres() -> str:
     try:
         import asyncpg
 
-        dsn = database_url.replace("postgresql+asyncpg://", "postgresql://")
+        dsn = (
+            database_url.replace("postgresql+asyncpg://", "postgresql://")
+            .replace("postgres://", "postgresql://")
+        )
         conn = await asyncpg.connect(dsn=dsn, timeout=2)
         try:
             await conn.fetchval("SELECT 1")
@@ -77,6 +80,9 @@ async def _check_redis() -> str:
 async def _check_rabbitmq() -> str:
     rabbit_url = os.getenv("RABBITMQ_URL") or os.getenv("CELERY_BROKER_URL")
     if not rabbit_url:
+        return "skipped"
+    # Redis can be the Celery broker on free cloud tiers — don't require AMQP.
+    if rabbit_url.startswith("redis"):
         return "skipped"
     try:
         import aio_pika

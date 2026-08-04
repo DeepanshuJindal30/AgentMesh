@@ -14,18 +14,24 @@ broker = os.getenv(
 
 EXECUTIONS_QUEUE = "agentmesh.executions"
 
+
+def _queue() -> Queue:
+    # RabbitMQ DLX args are invalid on Redis brokers (common on free cloud tiers).
+    if broker.startswith("amqp"):
+        return Queue(
+            EXECUTIONS_QUEUE,
+            Exchange(""),
+            routing_key=EXECUTIONS_QUEUE,
+            queue_arguments={
+                "x-dead-letter-exchange": "agentmesh.dlx",
+                "x-dead-letter-routing-key": "executions.dead",
+            },
+        )
+    return Queue(EXECUTIONS_QUEUE, Exchange(""), routing_key=EXECUTIONS_QUEUE)
+
+
 celery_client = Celery("agentmesh", broker=broker)
-celery_client.conf.task_queues = (
-    Queue(
-        EXECUTIONS_QUEUE,
-        Exchange(""),
-        routing_key=EXECUTIONS_QUEUE,
-        queue_arguments={
-            "x-dead-letter-exchange": "agentmesh.dlx",
-            "x-dead-letter-routing-key": "executions.dead",
-        },
-    ),
-)
+celery_client.conf.task_queues = (_queue(),)
 celery_client.conf.update(
     task_default_queue=EXECUTIONS_QUEUE,
     task_serializer="json",
